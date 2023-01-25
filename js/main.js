@@ -61,7 +61,7 @@ const arcballGui = {
 
 // create camera
 function makePerspectiveCamera() {
-    const fov = 75;
+    const fov = 95;
     const aspect = window.innerWidth / window.innerHeight;
     const near = 0.1;
     const far = 1000;
@@ -104,8 +104,8 @@ function render() {
     renderer.render(scene, camera);
 }
 
+const divMain = document.querySelector("#main");
 function init() {
-    const divMain = document.querySelector("#main");
     scene = new THREE.Scene();
     camera = makePerspectiveCamera();
     camera.position.set(0, 0, perspectiveDistance);
@@ -123,15 +123,47 @@ function init() {
 
 
     // //   create the shape
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    // const geometry = new THREE.BoxGeometry(1, 1, 1);
 
     const material = new THREE.MeshStandardMaterial();
-    const textureLoader = new THREE.TextureLoader().setPath('img/');
-    material.roughness = 1
-    material.metalness = 1
+    new OBJLoader().setPath('models/cerberus/').load('Cerberus.obj', function (group) {
+        const textureLoader = new THREE.TextureLoader().setPath('models/cerberus/');
+        material.roughness = 1;
+        material.metalness = 1;
+        const diffuseMap = textureLoader.load('Cerberus_A.jpg', render);
+        diffuseMap.encoding = THREE.sRGBEncoding;
+        material.map = diffuseMap;
 
-    const diffuseMap = textureLoader.load('text1.jpg', render)
-    diffuseMap.encoding = THREE.sRGBEncoding;
+        material.metalnessMap = material.roughnessMap = textureLoader.load('Cerberus_RM.jpg', render);
+        material.normalMap = textureLoader.load('Cerberus_N.jpg', render);
+
+        material.map.wrapS = THREE.RepeatWrapping;
+        material.roughnessMap.wrapS = THREE.RepeatWrapping;
+        material.metalnessMap.wrapS = THREE.RepeatWrapping;
+        material.normalMap.wrapS = THREE.RepeatWrapping;
+
+        group.traverse(function (child) {
+            if (child.isMesh) {
+
+                child.material = material;
+            }
+        });
+        group.rotation.y = Math.PI / 2;
+        group.position.x += 0.25;
+        scene.add(group);
+        render();
+        new RGBELoader()
+            .setPath('textures/equirectangular/')
+            .load('venice_sunset_1k.hdr', function (hdrEquirect) {
+
+                hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+
+                scene.environment = hdrEquirect;
+
+                render();
+
+            });
+    });
 
     const cubeMaterial = [
         new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('img/1.png'), side: THREE.DoubleSide, wireframe: false }),
